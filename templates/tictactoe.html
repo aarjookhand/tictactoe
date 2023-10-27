@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head><title>Tic Tac Toe</title></head>
+  <body>
+    <h1>Tic Tac Toe</h1>
+    <h2>{{msg}}</h2>
+    <form action="" method="POST">
+      <table>
+        {% for j in range(0, 3) %}
+        <tr>
+          {% for i in range(0, 3) %}
+          <td>
+            <button type="submit" name="choice" value="{{j*3+i+1}}"
+             {{"disabled" if ttt.spot_string(i, j)!="_"}}>
+              {{ttt.spot_string(i, j)}}
+            </button>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+      <button type="submit" name="reset">Start Over</button>
+    </form>
+  </body>
+</html>
