@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tic Tac Toe</title>
+    <title>Tic Tac Toe PvE</title>
     <style>
         table {
             border-collapse: collapse;
@@ -26,24 +26,24 @@
     </style>
 </head>
 <body>
-    <h1>Tic-Tac-Toe</h1>
-    <p>Current players: <span id="player1">{{ session['player1'] }}</span> vs <span id="player2">{{ session['player2'] }}</span></p>
+    <h1>Tic-Tac-Toe PvE</h1>
+    <p>Current player: {{ current_player }}</p>
 
     <table>
         <tr>
-            <td data-position="0" onclick="makeMove(this)"></td>
-            <td data-position="1" onclick="makeMove(this)"></td>
-            <td data-position="2" onclick="makeMove(this)"></td>
+            <td data-position="0" onclick="makeMove(this)">{{ board[0] }}</td>
+            <td data-position="1" onclick="makeMove(this)">{{ board[1] }}</td>
+            <td data-position="2" onclick="makeMove(this)">{{ board[2] }}</td>
         </tr>
         <tr>
-            <td data-position="3" onclick="makeMove(this)"></td>
-            <td data-position="4" onclick="makeMove(this)"></td>
-            <td data-position="5" onclick="makeMove(this)"></td>
+            <td data-position="3" onclick="makeMove(this)">{{ board[3] }}</td>
+            <td data-position="4" onclick="makeMove(this)">{{ board[4] }}</td>
+            <td data-position="5" onclick="makeMove(this)">{{ board[5] }}</td>
         </tr>
         <tr>
-            <td data-position="6" onclick="makeMove(this)"></td>
-            <td data-position="7" onclick="makeMove(this)"></td>
-            <td data-position="8" onclick="makeMove(this)"></td>
+            <td data-position="6" onclick="makeMove(this)">{{ board[6] }}</td>
+            <td data-position="7" onclick="makeMove(this)">{{ board[7] }}</td>
+            <td data-position="8" onclick="makeMove(this)">{{ board[8] }}</td>
         </tr>
     </table>
 
@@ -54,8 +54,7 @@
         let currentPlayer = 'X';
         let cells = document.querySelectorAll('td');
         let winnerMessage = document.getElementById('winner-message');
-        let player1 = "{{ session['player1'] }}";
-        let player2 = "{{ session['player2'] }}";
+        let player = "{{ current_player }}";
 
         function checkWinner() {
             const winningCombos = [
@@ -86,7 +85,7 @@
                     if (winner === 'Draw') {
                         winnerMessage.innerText = "It's a draw!";
                     } else {
-                        winnerMessage.innerText = ` ${winner} wins!`;
+                        winnerMessage.innerText = `Player ${winner} wins!`;
                     }
                 }
                 currentPlayer = (currentPlayer === 'X') ? 'O' : 'X';

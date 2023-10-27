@@ -15,13 +15,7 @@ from dotenv import load_dotenv
 from functools import wraps
 
 load_dotenv()
-
-
-
 import os
-
-
-
 
 
 app = Flask(__name__)
@@ -38,12 +32,6 @@ current_player = 'X'
 # conn to MongoDB
 client = MongoClient(MONGODB_URI)
 db = client[MONGODB_DB]
-
-# define collections
-collection = db['jobs']
-applicant_collection = db['applicants']
-users_collection = db['users']
-ALLOWED_EXTENSIONS = {'pdf'}
 
 
 fs = GridFS(db)
@@ -204,6 +192,7 @@ def login():
             user = User(user_data[0], user_data[1], user_data[2], user_data[3])
             login_user(user)
             current_user.email = user_data[2] 
+            session['player1'] = current_user.username  
             flash("Successfully logged in")
             print("Login email:", current_user.email)
 
@@ -214,55 +203,151 @@ def login():
 
     return render_template('login.html', form=form)
 
+@app.route('/loginpvp', methods=['GET', 'POST'])
+def loginpvp():
+    form = LoginForm()
+
+    if form.is_submitted():
+        username = form.username.data
+        password = form.password.data
+
+        conn = sqlite3.connect(SQLITE_URI)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+        user_data = cursor.fetchone()
+        conn.close()
+
+        if user_data:
+            user = User(user_data[0], user_data[1], user_data[2], user_data[3])
+            login_user(user)
+            current_user.email = user_data[2]
+            session['player2'] = current_user.username  
+            flash("Successfully logged in")
+            return redirect(url_for('tictactoe'))
+
+        else:
+            flash('Login Failed. Invalid Credentials')
+
+    return render_template('loginpvp.html', form=form)
+
+
+
 
 @app.route('/home')
-
+@login_required
 def home():
     return render_template('home.html')
 
 
-@app.route('/pvp', methods=['GET', 'POST'])
+@app.route('/pvp', methods=['GET'])
+@login_required
 def pvp():
-    return render_template('login.html')                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-
-@app.route('/pve', methods=['GET', 'POST'])
-def pve():
-    return render_template('tictactoe.html')
+    if 'player2' not in session:
+        return redirect(url_for('loginpvp'))
 
 
 @app.route('/tictactoe', methods=['GET', 'POST'])
+@login_required
 def tictactoe():
-    global board, current_player
+    player1 = session.get('player1')
+    player2 = session.get('player2')
+
+    if not player1 or not player2:
+        return redirect(url_for('pvp'))
+
+    if 'board' not in session:
+        session['board'] = [""] * 9
+
+    board = session['board']
+    current_player = player1 if session['current_player'] == 'X' else player2
 
     if request.method == 'POST':
-        cell = int(request.form['cell'])
+        if current_user.username == current_player:
+            position = int(request.form['position'])
 
-        if board[cell] == '':
-            board[cell] = current_player  
+            if board[position] == "":
+                board[position] = current_player
+                winner = check_winner(board)
 
-            current_player = 'X' if current_player == 'O' else 'O'
-            winner = check_winner()
-            if winner:
-                result = "Player {} wins!".format(winner)
-                flash(result)
-
-            elif '' not in board:
-                result = "It's a draw!"
-                flash(result)
+                if winner:
+                    reset_game()
+                    return render_template('tictactoe.html', board=board, current_player=current_player, winner=winner)
+                elif not "" in board:
+                    reset_game()
+                    return render_template('tictactoe.html', board=board, current_player=current_player, draw=True)
+                else:
+                    session['current_player'] = 'O' if session['current_player'] == 'X' else 'X'
 
     return render_template('tictactoe.html', board=board, current_player=current_player)
 
 
-def check_winner():
-    winning_combinations = [(0, 1, 2), (3, 4, 5), (6, 7, 8),
-                            (0, 3, 6), (1, 4, 7), (2, 5, 8),
-                            (0, 4, 8), (2, 4, 6)]
+# ... Your Flask app setup ...
 
+@app.route('/pve', methods=['GET', 'POST'])
+@login_required
+def pve():
+    if 'board' not in session:
+        session['board'] = [""] * 9
+    if 'current_player' not in session:
+        session['current_player'] = "X"
+
+    if request.method == 'POST':
+        board = session['board']
+        current_player = session['current_player']
+        position = int(request.form['position'])
+
+        if board[position] == "" and current_user.username == 'human':
+            board[position] = current_player
+            session['board'] = board
+
+            if check_winner(board):
+                reset_game()
+                return render_template('pve.html', board=board, current_player=current_player, winner=current_user.username)
+            elif "" not in board:
+                reset_game()
+                return render_template('pve.html', board=board, draw=True)
+
+            current_player = "O"
+            session['current_player'] = current_player
+
+            # Provide moves for the computer (for example)
+            computer_moves = [0, 4, 2, 6, 7]
+            for move in computer_moves:
+                if board[move] == "":
+                    board[move] = current_player
+                    session['board'] = board
+
+                    if check_winner(board):
+                        reset_game()
+                        return render_template('pve.html', board=board, current_player=current_player, winner="Computer")
+                    elif "" not in board:
+                        reset_game()
+                        return render_template('pve.html', board=board, draw=True)
+
+                    current_player = "X"
+                    session['current_player'] = current_player
+
+    return render_template('pve.html', board=session['board'], current_player=session['current_player'])
+
+# ... The rest of your Flask app ...
+
+def reset_game():
+    session['board'] = [""] * 9
+    session['current_player'] = 'X'
+
+
+
+def check_winner(board):
+    winning_combinations = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
     for combo in winning_combinations:
-        if board[combo[0]] == board[combo[1]] == board[combo[2]] and board[combo[0]] != '':
+        if board[combo[0]] == board[combo[1]] == board[combo[2]] and board[combo[0]] != "":
             return board[combo[0]]
-
     return None
+
+
+def reset_game():
+    session['board'] = [""] * 9
+    session['current_player'] = "X"
 
 
 if __name__ == '__main__':

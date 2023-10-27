@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Player vs. Player Login</title>
+</head>
+<body>
+    <h1>Player vs. Player Login</h1>
+    <form method="POST" action="/loginpvp">
+        <label for="username">Username:</label>
+        <input type="text" name="username" required>
+        <br>
+        <label for="password">Password:</label>
+        <input type="password" name="password" required>
+        <br>
+        <input type="submit" value="Login">
+    </form>
+    <p>{{ get_flashed_messages() }}</p>
+</body>
+</html>
