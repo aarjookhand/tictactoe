@@ -56,6 +56,10 @@
         let winnerMessage = document.getElementById('winner-message');
         let player = "{{ current_player }}";
 
+        // Predetermined computer moves
+        const computerMoves = [1, 3, 5, 7];
+        let computerMoveIndex = 0;
+
         function checkWinner() {
             const winningCombos = [
                 [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -89,6 +93,25 @@
                     }
                 }
                 currentPlayer = (currentPlayer === 'X') ? 'O' : 'X';
+
+                // If it's the computer's turn, make the next computer move
+                if (currentPlayer === 'O' && computerMoveIndex < computerMoves.length) {
+                    const position = computerMoves[computerMoveIndex];
+                    const cell = cells[position];
+                    if (cell.innerText === "" && !winnerMessage.innerText) {
+                        cell.innerText = currentPlayer;
+                        const winner = checkWinner();
+                        if (winner) {
+                            if (winner === 'Draw') {
+                                winnerMessage.innerText = "It's a draw!";
+                            } else {
+                                winnerMessage.innerText = `Player ${winner} wins!`;
+                            }
+                        }
+                        currentPlayer = 'X';
+                        computerMoveIndex++;
+                    }
+                }
             }
         }
 
@@ -98,6 +121,7 @@
             }
             winnerMessage.innerText = '';
             currentPlayer = 'X';
+            computerMoveIndex = 0;
         }
     </script>
 </body>

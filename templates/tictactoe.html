@@ -86,7 +86,8 @@
                     if (winner === 'Draw') {
                         winnerMessage.innerText = "It's a draw!";
                     } else {
-                        winnerMessage.innerText = ` ${winner} wins!`;
+                        const winnerUsername = (currentPlayer === 'X') ? player1 : player2;
+                        winnerMessage.innerText = `${winnerUsername} wins!`;
                     }
                 }
                 currentPlayer = (currentPlayer === 'X') ? 'O' : 'X';

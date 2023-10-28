@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PVP Leaderboard</title>
+</head>
+<body>
+    <h1>PVP Leaderboard</h1>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>PVP Wins</th>
+            <th>PVP Losses</th>
+        </tr>
+        {% for user in leaderboard_data %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.pvp_wins }}</td>
+            <td>{{ user.pvp_losses }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

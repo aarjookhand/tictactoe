@@ -10,7 +10,7 @@ from bson import ObjectId
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 from functools import wraps
-from flask import flash, redirect, url_for
+from flask import flash, redirect, url_for, jsonify
 from dotenv import load_dotenv
 from functools import wraps
 
@@ -157,13 +157,18 @@ def register():
         else:
             cursor.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, password))
             conn.commit()
+            conn.close()
 
             user_doc = {
-                '_id': str(email),          
+                '_id': email,
+                'username': username,
+                'pvp_games_played': 0,
+                'pvp_wins': 0,
+                'pvp_losses': 0    
             }
             db.users.insert_one(user_doc)
 
-            conn.close()
+
 
             flash("Successfully registered. You can now log in.")
             return redirect(url_for('login'))
@@ -244,6 +249,7 @@ def home():
 def pvp():
     if 'player2' not in session:
         return redirect(url_for('loginpvp'))
+    return render_template('tictactoe.html')
 
 
 @app.route('/tictactoe', methods=['GET', 'POST'])
@@ -251,6 +257,10 @@ def pvp():
 def tictactoe():
     player1 = session.get('player1')
     player2 = session.get('player2')
+    
+    # Add print statements to check values and flow
+    print(f"Player 1: {player1}")
+    print(f"Player 2: {player2}")
 
     if not player1 or not player2:
         return redirect(url_for('pvp'))
@@ -269,10 +279,24 @@ def tictactoe():
                 board[position] = current_player
                 winner = check_winner(board)
 
+                # Add print statement to check the result
+                print(f"Game result: {winner}")
+
                 if winner:
+                    if winner == 'Draw':
+                        flash("It's a draw!")
+                    else:
+                        flash(f"{current_user.username} wins!")
+
+                    update_mongodb(player1, player2, winner)
+
                     reset_game()
                     return render_template('tictactoe.html', board=board, current_player=current_player, winner=winner)
+
                 elif not "" in board:
+                    flash("It's a draw!")
+                    update_mongodb(player1, player2, "Draw")
+
                     reset_game()
                     return render_template('tictactoe.html', board=board, current_player=current_player, draw=True)
                 else:
@@ -280,60 +304,20 @@ def tictactoe():
 
     return render_template('tictactoe.html', board=board, current_player=current_player)
 
+def update_mongodb(player1, player2, result):
+    print(f"Updating MongoDB: Player1={player1}, Player2={player2}, Result={result}")
+    db.users.update_one({'username': player1}, {'$inc': {'pvp_games_played': 1}})
+    if result == player1:
+        db.users.update_one({'username': player1}, {'$inc': {'pvp_wins': 1}})
+    elif result != 'Draw':
+        db.users.update_one({'username': player1}, {'$inc': {'pvp_losses': 1}})
 
-# ... Your Flask app setup ...
+    db.users.update_one({'username': player2}, {'$inc': {'pvp_games_played': 1}})
+    if result == player2:
+        db.users.update_one({'username': player2}, {'$inc': {'pvp_wins': 1}})
+    elif result != 'Draw':
+        db.users.update_one({'username': player2}, {'$inc': {'pvp_losses': 1}})
 
-@app.route('/pve', methods=['GET', 'POST'])
-@login_required
-def pve():
-    if 'board' not in session:
-        session['board'] = [""] * 9
-    if 'current_player' not in session:
-        session['current_player'] = "X"
-
-    if request.method == 'POST':
-        board = session['board']
-        current_player = session['current_player']
-        position = int(request.form['position'])
-
-        if board[position] == "" and current_user.username == 'human':
-            board[position] = current_player
-            session['board'] = board
-
-            if check_winner(board):
-                reset_game()
-                return render_template('pve.html', board=board, current_player=current_player, winner=current_user.username)
-            elif "" not in board:
-                reset_game()
-                return render_template('pve.html', board=board, draw=True)
-
-            current_player = "O"
-            session['current_player'] = current_player
-
-            # Provide moves for the computer (for example)
-            computer_moves = [0, 4, 2, 6, 7]
-            for move in computer_moves:
-                if board[move] == "":
-                    board[move] = current_player
-                    session['board'] = board
-
-                    if check_winner(board):
-                        reset_game()
-                        return render_template('pve.html', board=board, current_player=current_player, winner="Computer")
-                    elif "" not in board:
-                        reset_game()
-                        return render_template('pve.html', board=board, draw=True)
-
-                    current_player = "X"
-                    session['current_player'] = current_player
-
-    return render_template('pve.html', board=session['board'], current_player=session['current_player'])
-
-# ... The rest of your Flask app ...
-
-def reset_game():
-    session['board'] = [""] * 9
-    session['current_player'] = 'X'
 
 
 
@@ -348,6 +332,7 @@ def check_winner(board):
 def reset_game():
     session['board'] = [""] * 9
     session['current_player'] = "X"
+
 
 
 if __name__ == '__main__':
